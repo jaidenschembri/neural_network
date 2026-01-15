@@ -1,8 +1,11 @@
 """FastAPI server for activation streaming."""
 
 import os
+from pathlib import Path
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 import uvicorn
 
 app = FastAPI(
@@ -10,6 +13,11 @@ app = FastAPI(
     description="Real-time neural network activation streaming",
     version="1.0.0"
 )
+
+# Serve frontend static files in production
+STATIC_DIR = Path(__file__).parent / "static"
+if STATIC_DIR.exists():
+    app.mount("/assets", StaticFiles(directory=STATIC_DIR / "assets"), name="assets")
 
 def parse_origins(value: str) -> list[str]:
     if not value or value.strip() == "*":
@@ -30,6 +38,9 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
+    # Serve frontend in production, API info in development
+    if STATIC_DIR.exists():
+        return FileResponse(STATIC_DIR / "index.html")
     return {
         "name": "Rhizome Network Visualization API",
         "version": "1.0.0",

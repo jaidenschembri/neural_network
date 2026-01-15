@@ -1,4 +1,7 @@
-const DEFAULT_WS_URL = 'ws://localhost:8001/ws';
+// In production (same origin), use relative path. In dev, use localhost.
+const DEFAULT_WS_URL = import.meta.env.PROD
+  ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`
+  : 'ws://localhost:8001/ws';
 
 function normalizeWsUrl(value) {
   if (!value) return '';
