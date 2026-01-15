@@ -31,6 +31,7 @@ Thumbs.db
 *.csv
 *.json
 !package.json
+!package-lock.json
 
 # Logs
 *.log
