@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rhizome Network Map</title>
+  <style>
+    :root {
+      --bg: #f4f2ed;
+      --bg-accent: #e4efe8;
+      --ink: #172322;
+      --muted: #526462;
+      --accent: #2f7f78;
+      --accent-strong: #ef6c4d;
+      --panel: rgba(255, 255, 255, 0.86);
+      --panel-border: rgba(23, 35, 34, 0.18);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Azeret Mono", "JetBrains Mono", "SFMono-Regular", Menlo, monospace;
+      background: radial-gradient(circle at 15% 10%, var(--bg-accent), var(--bg) 55%, #f8f4ef 100%);
+      color: var(--ink);
+      overflow: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(to right, rgba(23, 35, 34, 0.07) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(23, 35, 34, 0.05) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      opacity: 0.18;
+      z-index: 0;
+    }
+
+    #canvas-container {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+      z-index: 1;
+    }
+
+    .network-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    #info {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: var(--panel);
+      padding: 16px 20px;
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      font-size: 13px;
+      z-index: 100;
+      animation: panelIn 0.6s ease both;
+      max-width: 200px;
+    }
+
+    #info h1 {
+      font-size: 16px;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--ink);
+    }
+
+    #info .status {
+      margin: 5px 0;
+      opacity: 0.8;
+      font-weight: 600;
+    }
+
+    #info .status.connected {
+      color: #1f8f5f;
+    }
+
+    #info .status.reconnecting {
+      color: #c9772f;
+    }
+
+    #info .status.disconnected {
+      color: #c04848;
+    }
+
+    #info .stats {
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    #info .hint {
+      margin-top: 10px;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 20px;
+      text-align: center;
+      z-index: 1000;
+      color: var(--ink);
+      animation: fadeIn 0.6s ease both;
+    }
+
+    .loading.hidden {
+      display: none;
+    }
+
+    #controls {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      background: var(--panel);
+      padding: 20px;
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      font-size: 12px;
+      min-width: 240px;
+      z-index: 100;
+      animation: panelIn 0.6s ease 0.15s both;
+    }
+
+    #controls h2 {
+      font-size: 16px;
+      margin-bottom: 15px;
+      color: var(--ink);
+      text-align: center;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .control-group {
+      margin-bottom: 15px;
+    }
+
+    .control-group label {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--ink);
+      opacity: 0.9;
+    }
+
+    .control-group input[type="range"] {
+      width: 100%;
+      height: 4px;
+      background: rgba(47, 127, 120, 0.25);
+      outline: none;
+      border-radius: 2px;
+    }
+
+    .control-group input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 12px;
+      height: 12px;
+      background: var(--accent-strong);
+      cursor: pointer;
+      border-radius: 50%;
+    }
+
+    .control-group input[type="range"]::-moz-range-thumb {
+      width: 12px;
+      height: 12px;
+      background: var(--accent-strong);
+      cursor: pointer;
+      border-radius: 50%;
+      border: none;
+    }
+
+    .control-group .value {
+      display: inline-block;
+      float: right;
+      color: var(--muted);
+    }
+
+    .control-group button {
+      width: 100%;
+      padding: 8px;
+      background: var(--ink);
+      color: #fefaf5;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+
+    .control-group button:hover {
+      background: var(--accent);
+      color: #fefaf5;
+    }
+
+    .control-group button.active {
+      background: var(--accent-strong);
+      color: #fefaf5;
+    }
+
+    .checkbox-control {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .checkbox-control input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+    }
+
+    @keyframes panelIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    @media (max-width: 720px) {
+      #info {
+        top: 16px;
+        left: 16px;
+        right: 16px;
+      }
+
+      #controls {
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+        min-width: unset;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+
+  <div id="info">
+    <h1>Rhizome Network Map</h1>
+    <div id="status" class="status disconnected">Disconnected</div>
+    <div class="stats">
+      <div>Nodes: <span id="node-count">-</span></div>
+      <div>Connections: <span id="connection-count">-</span></div>
+      <div>Particles: <span id="particle-count">0</span></div>
+      <div>Nodes drawn: <span id="nodes-drawn">-</span></div>
+      <div>Links drawn: <span id="links-drawn">-</span></div>
+      <div>Particles drawn: <span id="particles-drawn">-</span></div>
+      <div>FPS: <span id="fps">-</span></div>
+      <div>Frame: <span id="frame-count">-</span></div>
+      <div>Label: <span id="current-label">-</span></div>
+    </div>
+    <div class="hint">Drag to pan / Scroll to zoom / Shift+drag to isolate / Double-click or Esc to reset</div>
+  </div>
+
+  <div id="loading" class="loading">
+    <div>Loading network topology...</div>
+    <div style="font-size: 14px; margin-top: 10px; opacity: 0.7;">Connecting to <span id="ws-url">ws://localhost:8001/ws</span></div>
+  </div>
+
+  <div id="controls">
+    <h2>Controls</h2>
+
+    <div class="control-group">
+      <button id="pause-btn">Pause</button>
+    </div>
+
+    <div class="control-group checkbox-control">
+      <label>Auto-Center</label>
+      <input type="checkbox" id="auto-center" checked>
+    </div>
+
+    <div class="control-group">
+      <label>
+        Flow Density
+        <span class="value" id="flow-value">0.50</span>
+      </label>
+      <input type="range" id="flow-slider" min="0" max="1" step="0.01" value="0.5">
+    </div>
+
+    <div class="control-group">
+      <label>
+        Link Density
+        <span class="value" id="link-density-value">1.00</span>
+      </label>
+      <input type="range" id="link-density" min="0.2" max="1.2" step="0.02" value="1">
+    </div>
+
+    <div class="control-group">
+      <label>
+        Node Size
+        <span class="value" id="node-scale-value">1.00</span>
+      </label>
+      <input type="range" id="node-scale" min="0.6" max="2" step="0.05" value="1">
+    </div>
+
+    <div class="control-group">
+      <label>
+        Backdrop
+        <span class="value" id="backdrop-value">0.00</span>
+      </label>
+      <input type="range" id="backdrop" min="0" max="0.6" step="0.02" value="0">
+    </div>
+
+    <div class="control-group">
+      <label>
+        Animation Speed
+        <span class="value" id="speed-value">1.0x</span>
+      </label>
+      <input type="range" id="speed-slider" min="0.1" max="3" step="0.1" value="1.0">
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

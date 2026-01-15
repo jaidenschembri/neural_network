@@ -1,0 +1,8 @@
+fastapi==0.127.0
+uvicorn==0.40.0
+orjson==3.11.5
+websockets==15.0.1
+torch==2.9.1
+torchvision==0.24.1
+numpy==2.3.5
+pydantic==2.12.5

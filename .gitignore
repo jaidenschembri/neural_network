@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Node
+node_modules/
+
+# PyTorch checkpoints (except the one needed for deployment)
+*.pth
+*.pt
+!backend/checkpoints/rhizome_autoencoder_latest.pth
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data
+*.csv
+*.json
+!package.json
+
+# Logs
+*.log
+
+# Env
+.env
+.env.*
+
+# Distribution
+dist/
+build/
+*.egg-info/
